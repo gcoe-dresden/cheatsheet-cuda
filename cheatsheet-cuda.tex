@@ -1,0 +1,443 @@
+\PassOptionsToPackage{table}{xcolor}
+\documentclass[a4paper,10pt,landscape]{article}
+\usepackage[landscape]{geometry}
+\usepackage{ifthen}
+\usepackage{graphicx}
+\usepackage{helvet}
+\usepackage{booktabs}
+\usepackage{multicol,multirow}
+\usepackage{amssymb,amsthm, amsmath}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{transparent}
+\usepackage[%per=slash,
+%            decimalsymbol=comma,
+            %locale=DE,
+            ]{siunitx}
+\usepackage{listings}
+\lstset{xleftmargin=\fboxsep,xrightmargin=\fboxsep,language=C++,basicstyle=\small\sffamily}
+\lstset{emph={__shared__},
+        morekeywords={uint3, dim3,texture},
+        emphstyle=\color[rgb]{0.4,0.0,0}}
+\lstset{commentstyle=\color[rgb]{0.3,0.3,0.3}}
+\lstset{stringstyle=\color{red},showstringspaces=false}
+\lstset{identifierstyle=\color[rgb]{0,0,0.5}}
+\lstset{keywordstyle=\color{blue}}
+\lstset{literate={~} {$\sim\,$}{1}}
+
+\makeatletter
+\def\CT@@do@color{%
+  \global\let\CT@do@color\relax
+        \@tempdima\wd\z@
+        \advance\@tempdima\@tempdimb
+        \advance\@tempdima\@tempdimc
+        \kern-\@tempdimb
+\transparent{0.6}%
+        \leaders\vrule
+                \hskip\@tempdima\@plus  1fill
+        \kern-\@tempdimc
+        \hskip-\wd\z@ \@plus -1fill }
+\makeatother
+
+\makeatletter
+\def\lst@outputspace{{\ifx\lst@bkgcolor\empty\color{white}\else\lst@bkgcolor\fi\lst@visiblespace}}
+\makeatother
+%% Normales Asterisk Symbol in Code verwenden #listings
+\makeatletter
+\lst@CCPutMacro
+ \lst@ProcessOther {"2A}{\lst@ttfamily**}\@empty\z@\@empty
+\makeatother
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\topmargin=-2cm
+%\textheight270mm
+%\oddsidemargin=-1cm
+\setlength{\parindent}{0pt}
+%\setlength{\textwidth}{27cm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt plus 0.5ex}
+\ifthenelse{\lengthtest { \paperwidth = 11in}}
+	{ \geometry{top=.5in,left=.5in,right=.5in,bottom=.5in} }
+	{\ifthenelse{ \lengthtest{ \paperwidth = 297mm}}
+		{\geometry{top=0.5cm,left=0.5cm,right=1cm,bottom=0.5cm} }
+		{\geometry{top=1cm,left=1cm,right=1cm,bottom=1cm} }
+	}
+% Turn off header and footer
+\pagestyle{empty}
+\definecolor{hellgrau}{rgb}{0.65,0.65,0.65}
+\newcommand{\mgraymidrule}{\arrayrulecolor{hellgrau}\midrule\arrayrulecolor{black}}
+\newcolumntype{g}{>{\columncolor{red}}c}
+% \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}\columncolor{#1}}c}
+% \newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+
+% Redefine section commands to use less space
+\makeatletter
+\renewcommand{\section}{\@startsection{section}{1}{0mm}%
+                                {-1ex plus -.5ex minus -.2ex}%
+                                {0.5ex plus .2ex}%x
+                                {\normalfont\large\bfseries}}
+\renewcommand{\subsection}{\@startsection{subsection}{2}{0mm}%
+                                {-1explus -.5ex minus -.2ex}%
+                                {0.5ex plus .2ex}%
+                                {\normalfont\normalsize\bfseries}}
+\renewcommand{\subsubsection}{\@startsection{subsubsection}{3}{0mm}%
+                                {-1ex plus -.5ex minus -.2ex}%
+                                {1ex plus .2ex}%
+                                {\normalfont\small\bfseries}}
+\makeatother
+% Don't print section numbers
+\setcounter{secnumdepth}{0}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\raggedright
+\setlength{\premulticols}{1pt}
+\setlength{\postmulticols}{1pt}
+\setlength{\multicolsep}{1pt}
+\setlength{\columnsep}{10pt}
+
+\begin{multicols*}{2}[\begin{center}\Large\textsc{CUDA C Programming Quick Reference\footnote{\today. Cf. Complete Reference: "NVIDIA CUDA C Programming Guide" -- Note, that functions may have optional arguments not listed here}}\end{center}]
+\columnseprule0.4pt
+%
+
+\begin{tabular}{p{4cm}p{9cm}}
+\multicolumn{2}{l}{\textbf{Function Qualifiers}} \\
+\verb __global__ & called from host, executed on device\\
+\verb __device__ & called from device, executed on device\\
+\verb __host__ & called from host, executed on host\\
+\verb __host__ \ \verb __device__ & generates code for host and device\\
+\verb __noinline__ & if possible, do not inline\\
+\verb __forceinline__ & force compiler to inline\\
+\multicolumn{2}{l}{\textbf{Variable Qualifiers (Device)}} \\
+\verb __device__ & variable on device (Global Memory)\\
+\verb __constant__ & variable in Constant Memory\\
+\verb __shared__ & variable in Shared Memory\\
+\verb __restrict__ & restricted pointers, assert to the compiler that pointers are not aliased (cf. aliased pointer)\\
+-- No Qualifier --& automatic variable, resides in Register or in Local Memory in some cases (local arrays, register spilling) \\
+\multicolumn{2}{l}{\textbf{Built-in Variables (Device)}} \\
+\lstinline$dim3 gridDim$ & dimensions of the current grid (\lstinline$gridDim.x$, \ldots)\newline(composed of independent blocks)\\
+\lstinline$dim3 blockDim$ & dimensions of the current block (composed of threads)\newline(total number of threads should be a multiple of warp size)\\
+\lstinline$dim3 blockIdx$ & block location in the grid (\lstinline$blockIdx.x$, \ldots)\\
+\lstinline$dim3 threadIdx$ & thread location in the block (\lstinline$threadIdx.x$, \ldots)\\
+\multicolumn{2}{l}{\textbf{Shared Memory}} \\
+Static allocation & \lstinline$__shared__ int a[128]$ \\
+Dynamic allocation\newline\ (at kernel launch) & \lstinline$extern __shared__ float b[]$\\
+\multicolumn{2}{l}{\textbf{Host / Device Memory}} \\
+Allocate pinned / page-locked Memory on host & \lstinline$cudaMallocHost(&dptr, size)$\newline(for higher bandwidth, may degrade system performance)\\
+Allocate Device Memory & \lstinline$cudaMalloc(&devptr, size)$\\
+Free Device Memory & \lstinline$cudaFree(devptr)$\\
+Transfer Memory & \lstinline$cudaMemcpy(dst, src, size, cudaMemcpyKind kind)$\newline
+kind = \{cudaMemcpyHostToDevice, \ldots\}\\
+Nonblocking Transfer & \lstinline$cudaMemcpyAsync(dst, src, size, kind[, stream])$\newline(host memory must be page-locked)\\
+Copy to constant or global memory & \lstinline$cudaMemcpyToSymbol(symbol, src, size[, offset[, kind]])$\newline kind=cudaMemcpy[HostToDevice$|$DeviceToDevice]\\
+\multicolumn{2}{l}{\textbf{Synchronizing}} \\
+Synchronizing one Block & \lstinline$__syncthreads()$ (device call)\\
+Synchronizing all Blocks & \lstinline$cudaDeviceSynchronize()$ (host call, CUDA Runtime API)\\
+%\multicolumn{2}{l}{\textbf{Kernel}} \\
+\multicolumn{2}{l}{\textbf{Kernel}} \\
+Kernel Launch&\lstinline$kernel<<<blocks, threadsPerBlock[, smem_size[, stream]]>>>(..)$\\
+\end{tabular}
+%
+%------------------------------------------------------------------------------
+\vfill
+\columnbreak
+
+\begin{tabular}{p{5.5cm}p{7cm}}
+\multicolumn{2}{l}{\textbf{CUDA Device Management}} \\
+Init device (context)&  \lstinline$cudaSetDevice(devID)$ \\
+Reset current device& \lstinline$cudaDeviceReset()$ (for profiler and flushing) \\
+\multicolumn{2}{l}{\textbf{CUDA Runtime API Error Handling}} \\
+CUDA Runtime API error as String & \lstinline$cudaGetErrorString(cudaError_t err)$ \\
+Last CUDA error produced by any of the runtime calls & \lstinline$cudaGetLastError()$ \\
+\multicolumn{2}{l}{\textbf{OpenGL Interoperability}} \\
+Init device\newline(within OpenGL context)& \lstinline$cudaGLSetGLDevice(devID)$\newline(mutually exclusive to \lstinline$cudaSetDevice()$)\\
+Register buffer object\newline(must not be bound by OpenGL)& \lstinline$cudaGraphicsGLRegisterBuffer(&res, id, flags)$\newline
+ \verb res:  cudaGraphicsResource pointer\newline
+ \verb id:  OpenGL Buffer Id\newline
+ \verb flags:  register flags (read/write access)
+ \\
+Register texture or render buffer& \lstinline$cudaGraphicsGLRegisterImage(&res, id, target, flags)$\\
+%\multicolumn{2}{l}{\textbf{Direct3D Interoperability}} \\
+%Register Direct3D 9 Resource & \lstinline$cudaGraphicsD3D9RegisterResource(&Res, ptrRes, flags)$\\
+%Register Direct3D 10 Resource & \lstinline$cudaGraphicsD3D10RegisterResource(&Res, ptrRes, flags)$\\
+%Register Direct3D 11 Resource & \lstinline$cudaGraphicsD3D11RegisterResource(&Res, ptrRes, flags)$\\
+\multicolumn{2}{l}{\textbf{Graphics Interoperability}} \\
+Unregister graphics resource & \lstinline$cudaGraphicsUnregisterResource(res)$\\
+Map graphics resources for access by CUDA & \lstinline$cudaGraphicsMapResources(count, &res[, stream])$\\
+Get device pointer (access a mapped graphics resource)\newline 
+(OpenGL: buffer object)\vspace{.4em} & \lstinline$cudaGraphicsResourceGetMappedPointer(&dptr, size, res)$\\
+Get CUDA array of a mapped graphics resource\newline 
+(OpenGL: texture or renderbuffer)\vspace{.4em} & \lstinline$cudaGraphicsSubResourceGetMappedArray(&a, res, i, lvl)$\\
+Unmap graphics resource & \lstinline$cudaGraphicsUnmapResources(count, &res[, stream])$\\
+\multicolumn{2}{l}{\textbf{CUDA Texture}} \\
+\multicolumn{2}{l}{Textures are read-only global memory, but cached on-chip, with texture interpolation\vspace{.4em}}\\
+Declare texture (at file scope) & \lstinline$texture<DataType,TexType,Mode> texRef$\\
+Create channel descriptor & \lstinline$cudaCreateChannelDesc<DataType>()$\\
+Bind memory to texture & \lstinline$cudaBindTexture(offset, texref, dptr, channelDesc, size)$\\
+Unbind texture & \lstinline$cudaUnbindTexture(texRef)$\\
+Fetch Texel (texture pixel) & \lstinline$tex1D(texRef, x)$\\
+& \lstinline$tex2D(texRef, x, y)$\\
+& \lstinline$tex3D(texRef, x, y, z)$\\
+& \lstinline$tex1DLayered(texRef, x, layer)$\\
+& \lstinline$tex2DLayered(texRef, x, y, layer)$\\
+\multicolumn{2}{l}{\textbf{CUDA Streams (Concurrency Management)}} \\
+\multicolumn{2}{l}{Stream $=$ instruction sequence. Streams may execute their commands out of order.\vspace{.4em}}\\
+Create CUDA Stream & \lstinline$cudaStreamCreate(cudaStream_t &stream)$\\
+Destroy CUDA Stream & \lstinline$cudaStreamDestroy(stream)$\\
+Synchronize Stream & \lstinline$cudaStreamSynchronize(stream)$\\
+Stream completed? & \lstinline$cudaStreamQuery(stream)$\\
+\end{tabular}
+
+%\end{tabular}
+%\subsection{nvcc Compiler Flags}
+%\begin{tabular}{p{4cm}p{9cm}}
+%\verb --ptxas-options=-v & \\
+%\verb -arch=compute_13 & \\
+%\verb -code=compute_13,sm_13 & \\
+%\verb -m64 & device code in 64-bit (i.e. pointers are 64-bit)\\
+%\end{tabular}
+%
+\end{multicols*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \raggedright
+% \begin{multicols}{3}[\begin{center}\Large\textsc{CUDA C Programming Quick Reference}\end{center}]
+% \columnseprule0.4pt
+
+% \subsection{Technical Specifications}
+% {\small{
+\setlength{\premulticols}{1pt}
+\setlength{\postmulticols}{1pt}
+\setlength{\multicolsep}{1pt}
+\setlength{\columnsep}{10pt}
+\setlength{\aboverulesep}{0pt}
+\setlength{\belowrulesep}{0pt}
+\setlength{\extrarowheight}{.75ex}
+
+\renewcommand\arraystretch{1.1}
+%\vspace*{-0.8cm}
+\begin{tikzpicture}[font=\small]
+\node[anchor=north west] at (0,0.45) {%
+\begin{tabular}{p{8cm}*{11}{c}}
+ & \multicolumn{4}{c}{\textsc{Tesla}} & \multicolumn{2}{c}{\textsc{Fermi}} & \multicolumn{3}{c}{\textsc{Kepler}} & \multicolumn{2}{c}{\textsc{Maxwell}} \\
+\phantom{Compute Capability} & \phantom{1.0} & \phantom{1.1} & \phantom{1.2} & \phantom{1.3} & \phantom{2.0} & \phantom{2.1} & \phantom{3.0} & \phantom{3.5} & \phantom{3.7} & \phantom{5.0} & \phantom{5.2}  \\
+ & & & & & & & & &\phantom{\SI{112}{KB}} & \phantom{\SI{64}{KB}} & \phantom{\SI{96}{KB}} \\ & & & & & & & & & & &\\
+\end{tabular}};
+%
+\node[anchor=north west] at (0,-1.9em) {%
+\begin{tabular}{p{8.02cm} C{red} C{red!80} C{red!60} C{red!40} C{yellow} C{yellow!80} C{green} C{green!80} C{green!60} C{cyan} C{cyan!75}}
+\phantom{Compute Capability} & \phantom{1.0} & \phantom{1.1} & \phantom{1.2} & \phantom{1.3} & \phantom{2.0} & \phantom{2.1} & \phantom{3.0} & \phantom{3.5} & \phantom{3.7} & \phantom{5.0} & \phantom{5.2}  \\
+                             & & & & & & & & &\phantom{\SI{112}{KB}} & \phantom{\SI{64}{KB}} & \phantom{\SI{96}{KB}}\hspace{0.5pt}
+% height of transparent background-colored table
+  \\[0.79\textheight] & & & & & & & & & & &\\
+\end{tabular}};
+%
+\node[anchor=north west] {%
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{|p{8cm}|*{11}{c}|}
+\rowcolor{black}
+\toprule
+\textcolor{white}{\textsc{Compute Capability}} & \textcolor{white}{1.0} & \textcolor{white}{1.1} & \textcolor{white}{1.2}  & \textcolor{white}{1.3} & \textcolor{white}{2.0} & \textcolor{white}{2.1} & \textcolor{white}{3.0} & \textcolor{white}{3.5} & \textcolor{white}{3.7} & \textcolor{white}{5.0} & \textcolor{white}{5.2} \\
+\midrule
+Max. dimensionality of grid & \multicolumn{4}{c|}{\num{2}} & \multicolumn{7}{c|}{\num{3}} \\
+
+Max. dimensionality of block & \multicolumn{11}{c|}{\num{3}}\\
+
+Max. x-,y- or z-dimension of a grid & \multicolumn{6}{c|}{$2^{16}{-}1$} & \multicolumn{5}{c|}{$2^{32}{-}1$}\\
+
+Max. x- or y-dimension of a block & \multicolumn{4}{c|}{\num{512}} & \multicolumn{7}{c|}{\num{1024}}\\
+
+Max. z-dimension of a block & \multicolumn{11}{c|}{\num{64}}\\
+
+Max. threads per block&\multicolumn{4}{c|}{\num{512}} & \multicolumn{7}{c|}{\num{1024}}\\
+
+Warp Size & \multicolumn{11}{c|}{\num{32}}\\
+\mgraymidrule
+Max. resident blocks per SM & \multicolumn{6}{c|}{\num{8}} & \multicolumn{3}{c|}{\num{16}} & \multicolumn{2}{c|}{\num{32}}\\
+
+Max. resident warps per SM & \multicolumn{2}{c|}{\num{24}} & \multicolumn{2}{c|}{\num{32}} & \multicolumn{2}{c|}{\num{48}} & \multicolumn{5}{c|}{\num{64}}\\
+
+Max. resident threads per SM & \multicolumn{2}{c|}{\num{768}} & \multicolumn{2}{c|}{\num{1024}} & \multicolumn{2}{c|}{\num{1536}} & \multicolumn{5}{c|}{\num{2048}}\\
+
+Number of 32-bit registers per SM & \multicolumn{2}{c|}{\SI{8}{K}} & \multicolumn{2}{c|}{\SI{16}{K}} & \multicolumn{2}{c|}{\SI{32}{K}} & \multicolumn{2}{c|}{\SI{64}{K}} &\SI{128}{K} & \multicolumn{2}{c|}{\SI{64}{K}}  \\
+
+Max. registers per thread & \multicolumn{4}{c|}{\num{124}} & \multicolumn{3}{c|}{\num{63}} & \multicolumn{4}{c|}{\num{255}} \\
+\mgraymidrule
+Max. shared memory per SM\newline($\ge$2.0: configurable L1 Cache) & \multicolumn{4}{c|}{\SI{16}{KB}} & \multicolumn{4}{c|}{\SI{48}{KB}} & \SI{112}{KB} & \SI{64}{KB} & \SI{96}{KB} \\
+
+Number of shared memory banks & \multicolumn{4}{c|}{\num{16}} & \multicolumn{7}{c|}{\num{32}} \\
+
+Local memory per thread & \multicolumn{4}{c|}{\SI{16}{KB}} & \multicolumn{7}{c|}{\SI{512}{KB}} \\
+
+Constant memory size & \multicolumn{11}{c|}{\SI{64}{KB}}  \\
+\mgraymidrule
+Cache working set per SM for constant & \multicolumn{9}{c|}{\SI{8}{KB}} & \multicolumn{2}{c|}{\SI{10}{KB}} \\
+
+Cache working set per SM for texture & \multicolumn{4}{c|}{\num{6}-\SI{8}{KB}} & \multicolumn{3}{c|}{\SI{12}{KB}} & \multicolumn{2}{c|}{\SI{12}{KB}-\SI{48}{KB}} & \SI{24}{KB} & \SI{48}{KB}\\
+\mgraymidrule
+Max. instructions per kernel & \multicolumn{5}{c|}{\num{2} million} & \multicolumn{6}{c|}{\num{512} million} \\
+
+Max. width for 1D texture (array) & \multicolumn{4}{c|}{\num{8192}} & \multicolumn{7}{c|}{\num{65536}} \\
+
+Max. width 1D texture (linear) & \multicolumn{11}{c|}{$2^{27}$} \\
+
+Max. width$\times$layers for 1D texture  & \multicolumn{4}{c|}{\num{8192}$\times$\num{512}} & \multicolumn{7}{c|}{\num{16384}$\times$\num{2048}} \\
+
+Max. textures bound to kernel & \multicolumn{6}{c|}{\num{128}} & \multicolumn{5}{c|}{\num{256}} \\
+
+Max. width$\times$layers for 1D surface & \multicolumn{4}{c|}{N/A} & \multicolumn{7}{c|}{\num{65536}$\times$\num{2048}} \\
+
+Max. surfaces bound to kernel & \multicolumn{4}{c|}{N/A} & \multicolumn{2}{c|}{\num{8}} & \multicolumn{5}{c|}{\num{16}} \\
+\rowcolor{black}
+\multicolumn{12}{|l|}{\textsc{\color{white}{Architecture Specifications}}} \\
+
+Number of cores (with FPU and ALU)& \multicolumn{4}{c|}{\num{8}} & \num{32} & \num{48} & \multicolumn{3}{|c|}{\num{192}} & \multicolumn{2}{c|}{\num{128}} \\
+
+Number of special function units & \multicolumn{4}{c|}{\num{2}} & \num{4} & \num{8} & \multicolumn{5}{|c|}{\num{32}} \\
+
+Number of texture units & \multicolumn{4}{c|}{\num{2}} & \num{4} & \num{8} & \multicolumn{3}{|c}{\num{16}} & \multicolumn{2}{|c|}{8} \\
+
+Number of warp schedulers & \multicolumn{4}{c|}{\num{1}} & \multicolumn{2}{c}{\num{2}} & \multicolumn{5}{|c|}{\num{4}} \\
+
+Number of instructions issued by scheduler & \multicolumn{5}{c|}{\num{1}} & \multicolumn{6}{c|}{\num{2}}\\
+\midrule
+\rowcolor{black}
+\textcolor{white}{\textsc{Compute Capability}} & \textcolor{white}{1.0} & \textcolor{white}{1.1} & \textcolor{white}{1.2}  & \textcolor{white}{1.3} & \textcolor{white}{2.0} & \textcolor{white}{2.1} & \textcolor{white}{3.0} & \textcolor{white}{3.5} & \textcolor{white}{3.7} & \textcolor{white}{5.0} & \textcolor{white}{5.2} \\
+\bottomrule
+\end{tabular}};
+\end{tikzpicture}
+
+
+% }}
+%------------------------------------------------------------------------------
+% \vfill
+% \columnbreak
+%------------------------------------------------------------------------------
+
+% \subsection{Supported GPUs}
+{\small{
+\renewcommand\arraystretch{1.2}
+\begin{tabular}{l p{2cm} p{7cm}}
+\toprule
+\rowcolor{black}
+\textcolor{white}{\textbf{CC}} & \textcolor{white}{\textbf{GPUs}} & \textcolor{white}{\textbf{Features}} \\
+\midrule
+\rowcolor{gray!20}
+\multicolumn{3}{c}{\textsc{Fermi}}\\
+\mgraymidrule
+2.0 &	GF100, GF110 & ECC, Better Caches (L1 and L2), dual warp scheduler, concurrent kernel execution, better atomics, int64 shared memory atomics, float32-atomicAdd, unified address space, ballot, threadfence, surface, FMA, int32 ALU\\
+
+2.1 &	GF104, \ldots  & -- \\
+\mgraymidrule
+\rowcolor{gray!20}
+\multicolumn{3}{c}{\textsc{Kepler} (Focus: perf/watt, doubles, HPC)}\\
+\mgraymidrule
+3.0 &	GK104, GK106, GK107 &	Polymorph Engine 2.0, GPU Boost, TXAA, warp shuffle, bindless textures, h.264 encoder NVENC, adaptive VSync, PCIe 3.0\\
+
+3.5 &	GK110, GK208  &	Dynamic Parallelism, Hyper-Q, Grid Management Unit, GPUDirect (RDMA), funnel shift\\
+
+3.7 &	GK210 (K80)  &	\\
+\mgraymidrule
+\rowcolor{gray!20}
+\multicolumn{3}{c}{\textsc{Maxwell} (Focus: perf/watt, perf/area, single-precision, Gaming)}\\
+\mgraymidrule
+5.0 &	GM107, GM108  &	\\
+
+5.2 &	GM200, GM204, GM206  & Polymorph Engine 3.0, VXGI (Global Illumination), H.265 encoding\\
+\bottomrule
+\end{tabular}
+}}
+
+% \subsection{Occupancy}
+% $=\frac{\mbox{\#active warps per SM}}{\mbox{\#possible warps per SM}}$ ($\nearrow$ ExcelSheet "Occupancy Calculator")\\
+% Higher occupancy $\not=$ better performance (it's just more likely to hide latencies)\\
+% Potential occupancy limiters: Register usage, Shared Memory usage, Block size\\
+% Helpful nvcc compiler flag: \texttt{--ptxas-options=-v} (show memory usage of kernel)\\
+%
+
+%------------------------------------------------------------------------------
+% \vfill
+% \columnbreak
+%------------------------------------------------------------------------------
+
+\begin{tabular}{lrrrr}
+\toprule
+\rowcolor{black}
+\textcolor{white}{GPU} & \textcolor{white}{GTX 580} & \textcolor{white}{GTX 680} & \textcolor{white}{GTX 780} & \textcolor{white}{GTX 980} \\
+\midrule
+Launch & Nov 2010 & Mar 2012 & May 2013 & Sep 2014 \\
+Model & GF110 & GK104 & GK110 & GM204 \\
+Core Clock (MHz)  & \num{772} & \num{1006} & \num{863} & \num{1126} \\
+Shader Clock (Mhz) & \num{1544} & -- & -- & -- \\
+Boost Clock (MHz)  & -- & \num{1058} & \num{900} & \num{1216} \\
+PCIe Bus Support  & \num{2.0} & \num{3.0} & \num{3.0} & \num{3.0} \\
+CUDA Cores  & \num{512} & \num{1536} & \num{2304} & \num{2048} \\
+Memory Bandwidth (GB/sec)  & \num{192.4} & \num{192.2} & \num{288.4} & \num{224} \\
+Memory Clock (Mhz) & \num{4008} & \num{6008} & \num{6008} & \num{7010} \\
+Memory Interface Width (bit) & \num{384} & \num{256} & \num{384} & \num{256} \\
+Standard Memory Config MiB & \num{1536} & \num{2048} & \num{3072} & \num{4096} \\
+Texture Fill Rate (billion/sec) & \num{49.4} & \num{128.8} & \num{160.5} & \num{144} \\
+Max Temp. $^\circ$C & \num{97} & \num{98} & \num{95} & \num{98} \\
+Max Power W & \num{244} & \num{195} & \num{250} & \num{165} \\
+SM count & \num{16} & \num{8} & \num{12} & \num{16} \\
+Transistors & \num{3e+9} & \num{3.5e+9} & \num{7e+9} & \num{5.2e+9} \\
+GFLOPS/s (SP/DP) & \num{1581} / \num{198} & \num{3090} / \num{128} & \num{3977} / \num{166} & \num{4612} / \num{144} \\
+Fab-Size nm & \num{40} & \num{28} & \num{28} & \num{28} \\
+Die Size mm$^{\num{2}}$ & \num{520} & \num{294} & \num{561} & \num{398} \\
+L2 Cache Size KiB & \num{768} & \num{512} & \num{1536} & \num{2048} \\
+ROPs & \num{48} & \num{32} & \num{48} & \num{64} \\
+Texture Units & \num{64} & \num{128} & \num{192} & \num{128} \\
+\bottomrule
+\end{tabular}
+
+
+% \begin{tabular}{lr}
+% \toprule
+% \rowcolor{black}
+% \textcolor{white}{Metric} & \textcolor{white}{Value} \\
+% \midrule
+% global load efficiency & $\frac{\text{requested gld throughput}}{\text{required gld throughput}}$ \\
+% \bottomrule
+% \end{tabular}
+\vfill
+
+% \subsection{CUDA Memory}
+\tabcolsep 2.8pt
+\rowcolors{2}{gray!25}{white}
+\begin{tabular}{l*{5}{c}}
+\toprule
+Memory & Location & Cached & Access & Scope & Lifetime \\
+\midrule
+Register & On-chip & N/A & R/W & Thread & Thread \\
+
+Local & Off-chip & Yes & R/W & Thread & Thread \\
+
+Shared & On-chip & N/A & R/W & Block & Block \\
+
+Global & Off-chip & Yes & R/W & Global & Application \\
+
+Constant & Off-chip & Yes & R & Global & Application \\
+
+Texture & Off-chip & Yes & R & Global & Application \\
+
+Surface & Off-chip & Yes & R/W & Global & Application \\
+\bottomrule
+\end{tabular}\\[.2em]
+
+
+
+% \end{multicols}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
